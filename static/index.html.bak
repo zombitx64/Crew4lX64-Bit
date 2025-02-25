@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crawl4AI Interface</title>
+    <link href="static/output.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Crawl4AI Interface</h1>
+        </header>
+
+        <!-- Crawling Configuration -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Crawling Configuration</h2>
+            <form id="crawlForm" class="space-y-4">
+                <!-- URL Input -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Target URL</label>
+                    <input type="url" id="targetUrl" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="https://example.com">
+                </div>
+
+                <!-- Crawling Options -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Depth Limit</label>
+                        <input type="number" id="depthLimit" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="3" min="1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Request Delay (ms)</label>
+                        <input type="number" id="requestDelay" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="1000" min="0">
+                    </div>
+                </div>
+
+                <!-- Advanced Options -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Advanced Options</label>
+                    <div class="flex flex-wrap gap-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="followLinks" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                            <span class="ml-2">Follow Links</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="extractImages" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                            <span class="ml-2">Extract Images</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="takeScreenshots" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2">Take Screenshots</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="respectRobotsTxt" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                            <span class="ml-2">Respect robots.txt</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Content Extraction -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Content Extraction Method</label>
+                    <select id="extractionMethod" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="basic">Basic HTML Extraction</option>
+                        <option value="js">JavaScript-enabled Extraction</option>
+                        <option value="llm">LLM-based Extraction</option>
+                    </select>
+                </div>
+
+                <!-- Filters -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">URL Filters (one per line)</label>
+                    <textarea id="urlFilters" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="*.pdf&#10;/blog/*&#10;/downloads/*"></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <div>
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Start Crawling
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Crawling Results</h2>
+                <div class="space-x-2">
+                    <button id="exportJson" class="py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Export JSON
+                    </button>
+                    <button id="exportCsv" class="py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm font-medium text-gray-500">Total URLs</div>
+                    <div class="mt-1 text-2xl font-semibold text-gray-900" id="totalUrls">0</div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm font-medium text-gray-500">Successful</div>
+                    <div class="mt-1 text-2xl font-semibold text-green-600" id="successfulUrls">0</div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm font-medium text-gray-500">Failed</div>
+                    <div class="mt-1 text-2xl font-semibold text-red-600" id="failedUrls">0</div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm font-medium text-gray-500">With Screenshots</div>
+                    <div class="mt-1 text-2xl font-semibold text-blue-600" id="withScreenshots">0</div>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Content</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="resultsTable">
+                        <!-- Results will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="flex items-center justify-between mt-4">
+                <div class="flex items-center">
+                    <label class="mr-2 text-sm text-gray-700">Per page:</label>
+                    <select id="perPage" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="prevPage" class="py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Previous
+                    </button>
+                    <span class="text-sm text-gray-700" id="pageInfo">Page 1</span>
+                    <button id="nextPage" class="py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Next
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let itemsPerPage = 10;
+
+        // Fetch and update statistics
+        async function updateStatistics() {
+            try {
+                const response = await fetch('/api/statistics');
+                const stats = await response.json();
+                document.getElementById('totalUrls').textContent = stats.total_records || 0;
+                document.getElementById('successfulUrls').textContent = stats.successful_crawls || 0;
+                document.getElementById('failedUrls').textContent = stats.failed_crawls || 0;
+                document.getElementById('withScreenshots').textContent = stats.records_with_screenshots || 0;
+            } catch (error) {
+                console.error('Error fetching statistics:', error);
+            }
+        }
+
+        // Load and display results
+        async function loadResults(page = 1, perPage = 10) {
+            try {
+                const response = await fetch(`/api/results?page=${page}&per_page=${perPage}`);
+                const data = await response.json();
+                
+                const tbody = document.getElementById('resultsTable');
+                tbody.innerHTML = '';
+
+                data.results.forEach(result => {
+                    addResultRow(
+                        result.url,
+                        result.success,
+                        result.extracted_content.substring(0, 100) + '...'
+                    );
+                });
+
+                currentPage = page;
+                document.getElementById('pageInfo').textContent = `Page ${page}`;
+                
+                // Update pagination buttons
+                document.getElementById('prevPage').disabled = page === 1;
+                document.getElementById('nextPage').disabled = page * perPage >= data.total;
+            } catch (error) {
+                console.error('Error loading results:', error);
+            }
+        }
+
+        // Start crawling
+        document.getElementById('crawlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                url: document.getElementById('targetUrl').value,
+                depthLimit: parseInt(document.getElementById('depthLimit').value),
+                requestDelay: parseInt(document.getElementById('requestDelay').value),
+                followLinks: document.getElementById('followLinks').checked,
+                extractImages: document.getElementById('extractImages').checked,
+                takeScreenshots: document.getElementById('takeScreenshots').checked,
+                respectRobotsTxt: document.getElementById('respectRobotsTxt').checked,
+                extractionMethod: document.getElementById('extractionMethod').value,
+                urlFilters: document.getElementById('urlFilters').value.split('\n').filter(Boolean)
+            };
+
+            try {
+                const response = await fetch('/api/crawl', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('Crawling started successfully!');
+                    await updateStatistics();
+                    await loadResults(1, itemsPerPage);
+                } else {
+                    alert('Error starting crawl: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to start crawling');
+            }
+        });
+
+        // Export functions
+        document.getElementById('exportJson').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/export/json');
+                const result = await response.json();
+                if (result.success) {
+                    window.location.href = result.filename;
+                }
+            } catch (error) {
+                console.error('Error exporting JSON:', error);
+            }
+        });
+
+        document.getElementById('exportCsv').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/export/csv');
+                const result = await response.json();
+                if (result.success) {
+                    window.location.href = result.filename;
+                }
+            } catch (error) {
+                console.error('Error exporting CSV:', error);
+            }
+        });
+
+        // Pagination handlers
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                loadResults(currentPage - 1, itemsPerPage);
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            loadResults(currentPage + 1, itemsPerPage);
+        });
+
+        document.getElementById('perPage').addEventListener('change', (e) => {
+            itemsPerPage = parseInt(e.target.value);
+            loadResults(1, itemsPerPage);
+        });
+
+        // Result row creation
+        function addResultRow(url, status, content) {
+            const tbody = document.getElementById('resultsTable');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${url}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }">
+                        ${status ? 'Success' : 'Failed'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500">${content}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <button onclick="viewResult('${url}')" class="text-blue-600 hover:text-blue-900">View</button>
+                    <button onclick="deleteResult('${url}')" class="ml-3 text-red-600 hover:text-red-900">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        // View and delete handlers
+        async function viewResult(url) {
+            try {
+                const response = await fetch(`/api/results/${encodeURIComponent(url)}`);
+                const result = await response.json();
+                // Show result in a modal or new window
+                alert(JSON.stringify(result, null, 2));
+            } catch (error) {
+                console.error('Error viewing result:', error);
+            }
+        }
+
+        async function deleteResult(url) {
+            if (confirm('Are you sure you want to delete this result?')) {
+                try {
+                    const response = await fetch(`/api/results/${encodeURIComponent(url)}`, {
+                        method: 'DELETE'
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        await loadResults(currentPage, itemsPerPage);
+                        await updateStatistics();
+                    }
+                } catch (error) {
+                    console.error('Error deleting result:', error);
+                }
+            }
+        }
+
+        // Initial load
+        updateStatistics();
+        loadResults(1, itemsPerPage);
+    </script>
+</body>
+</html>

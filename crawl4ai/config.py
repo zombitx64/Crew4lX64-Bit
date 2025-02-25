@@ -1,4 +1,5 @@
 MIN_WORD_THRESHOLD = 50
+MODEL_REPO_BRANCH = "main"  # Default branch for model repository
 
 # Default crawler configuration
 DEFAULT_CRAWLER_CONFIG = {
