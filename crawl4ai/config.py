@@ -1,55 +1,86 @@
-MIN_WORD_THRESHOLD = 50
-MODEL_REPO_BRANCH = "main"  # Default branch for model repository
+import os
+from dotenv import load_dotenv
 
-# Default crawler configuration
-DEFAULT_CRAWLER_CONFIG = {
-    # Browser settings
-    "browser_args": [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu",
-        "--disable-infobars"
-    ],
-    
-    # Page load settings
-    "timeout": 20,
-    "wait_until": "networkidle",
-    "javascript": True,
-    "max_retries": 2,
-    
-    # Navigation settings
-    "max_depth": 1,
-    "follow_links": False,
-    
-    # Cache settings
-    "cache_mode": "memory",
-    "cache_expiry": 3600,
-    
-    # Content extraction
-    "min_content_length": 100,
-    "extract_metadata": True,
-    "ignore_robots": False,
-    
-    # Performance
-    "concurrent_requests": 2,
-    "request_delay": 1.0
+load_dotenv()  # Load environment variables from .env file
+
+# Default provider, ONLY used when the extraction strategy is LLMExtractionStrategy
+DEFAULT_PROVIDER = "openai/gpt-4o-mini"
+MODEL_REPO_BRANCH = "new-release-0.0.2"
+# Provider-model dictionary, ONLY used when the extraction strategy is LLMExtractionStrategy
+PROVIDER_MODELS = {
+    "ollama/llama3": "no-token-needed",  # Any model from Ollama no need for API token
+    "groq/llama3-70b-8192": os.getenv("GROQ_API_KEY"),
+    "groq/llama3-8b-8192": os.getenv("GROQ_API_KEY"),
+    "openai/gpt-4o-mini": os.getenv("OPENAI_API_KEY"),
+    "openai/gpt-4o": os.getenv("OPENAI_API_KEY"),
+    "openai/o1-mini": os.getenv("OPENAI_API_KEY"),
+    "openai/o1-preview": os.getenv("OPENAI_API_KEY"),
+    "anthropic/claude-3-haiku-20240307": os.getenv("ANTHROPIC_API_KEY"),
+    "anthropic/claude-3-opus-20240229": os.getenv("ANTHROPIC_API_KEY"),
+    "anthropic/claude-3-sonnet-20240229": os.getenv("ANTHROPIC_API_KEY"),
+    "anthropic/claude-3-5-sonnet-20240620": os.getenv("ANTHROPIC_API_KEY"),
 }
 
-class CrawlerConfig:
-    def __init__(self, max_depth=3, timeout=30, cache_mode="memory"):
-        self.max_depth = max_depth
-        self.timeout = timeout
-        self.cache_mode = cache_mode
-        
-    def update(self, **kwargs):
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-                
-    @classmethod
-    def from_dict(cls, config_dict):
-        instance = cls()
-        instance.update(**config_dict)
-        return instance
+# Chunk token threshold
+CHUNK_TOKEN_THRESHOLD = 2**11  # 2048 tokens
+OVERLAP_RATE = 0.1
+WORD_TOKEN_RATE = 1.3
+
+# Threshold for the minimum number of word in a HTML tag to be considered
+MIN_WORD_THRESHOLD = 1
+IMAGE_DESCRIPTION_MIN_WORD_THRESHOLD = 1
+
+IMPORTANT_ATTRS = ["src", "href", "alt", "title", "width", "height"]
+ONLY_TEXT_ELIGIBLE_TAGS = [
+    "b",
+    "i",
+    "u",
+    "span",
+    "del",
+    "ins",
+    "sub",
+    "sup",
+    "strong",
+    "em",
+    "code",
+    "kbd",
+    "var",
+    "s",
+    "q",
+    "abbr",
+    "cite",
+    "dfn",
+    "time",
+    "small",
+    "mark",
+]
+SOCIAL_MEDIA_DOMAINS = [
+    "facebook.com",
+    "twitter.com",
+    "x.com",
+    "linkedin.com",
+    "instagram.com",
+    "pinterest.com",
+    "tiktok.com",
+    "snapchat.com",
+    "reddit.com",
+]
+
+# Threshold for the Image extraction - Range is 1 to 6
+# Images are scored based on point based system, to filter based on usefulness. Points are assigned
+# to each image based on the following aspects.
+# If either height or width exceeds 150px
+# If image size is greater than 10Kb
+# If alt property is set
+# If image format is in jpg, png or webp
+# If image is in the first half of the total images extracted from the page
+IMAGE_SCORE_THRESHOLD = 2
+
+MAX_METRICS_HISTORY = 1000
+
+NEED_MIGRATION = True
+URL_LOG_SHORTEN_LENGTH = 30
+SHOW_DEPRECATION_WARNINGS = True
+SCREENSHOT_HEIGHT_TRESHOLD = 10000
+PAGE_TIMEOUT = 60000
+DOWNLOAD_PAGE_TIMEOUT = 60000
