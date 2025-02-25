@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crawl4AI Web Interface</title>
+    <link href="/static/output.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6">Crawl4AI Web Interface</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <form id="crawlForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="url">
+                        URL to Crawl
+                    </label>
+                    <input type="url" id="url" name="url" required
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        placeholder="https://example.com">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="strategy">
+                            Extraction Strategy
+                        </label>
+                        <select id="strategy" name="strategy" 
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <option value="rule_based">Rule Based (Fastest)</option>
+                            <option value="hybrid">Hybrid (Recommended)</option>
+                            <option value="llm">LLM (Most Accurate)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="wordCount">
+                            Minimum Word Count
+                        </label>
+                        <input type="number" id="wordCount" name="wordCount" value="50" min="50"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="format">
+                            Output Format
+                        </label>
+                        <select id="format" name="format" 
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <option value="json">JSON</option>
+                            <option value="markdown">Markdown</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between mt-6">
+                    <button type="submit"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Start Crawling
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="result" class="mt-8 bg-white rounded-lg shadow p-6 hidden">
+            <h2 class="text-xl font-bold mb-4">Results</h2>
+            <pre id="resultContent" class="bg-gray-100 p-4 rounded overflow-x-auto"></pre>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('crawlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const url = form.url.value;
+            const strategy = form.strategy.value;
+            const wordCount = parseInt(form.wordCount.value);
+
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            const submitButton = form.querySelector('button[type="submit"]');
+            const outputFormat = form.format.value;
+            
+            // Show result div and prepare for results
+            resultDiv.classList.remove('hidden');
+            resultContent.textContent = 'Initializing crawler...';
+            
+            // Disable submit button and show loading state
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+            submitButton.innerHTML = '<span class="animate-spin inline-block mr-2">⌛</span> Processing...';
+            
+            let pollAttempts = 0;
+            const maxAttempts = 40; // 40 seconds total timeout
+
+            try {
+                const response = await fetch('/crawl', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url,
+                        strategy,
+                        word_count_threshold: wordCount
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                // Poll for task completion
+                const pollTask = async (taskId) => {
+                    if (pollAttempts >= 35) { // Time out after 35 seconds (30s crawl + 5s buffer)
+                        resultContent.textContent = 'Request timed out. The crawling process took too long. Please try again or contact support if the issue persists.';
+                        submitButton.disabled = false;
+                        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                        return;
+                    }
+
+                    try {
+                        const taskResponse = await fetch(`/task/${taskId}`);
+                        if (!taskResponse.ok) {
+                            throw new Error(`HTTP error! status: ${taskResponse.status}`);
+                        }
+                        const taskData = await taskResponse.json();
+                        
+                        if (taskData.status === 'completed') {
+                            // Format the result based on selected output format
+                            if (outputFormat === 'markdown' && taskData.result) {
+                                // Request markdown format
+                                const mdResponse = await fetch(`/task/${taskId}`, {
+                                    headers: { 'Accept': 'text/markdown' }
+                                });
+                                const mdContent = await mdResponse.text();
+                                resultContent.textContent = mdContent;
+                            } else {
+                                // Format JSON with proper indentation
+                                resultContent.textContent = JSON.stringify(taskData.result || taskData.results, null, 2);
+                            }
+                            
+                            // Reset button state
+                            submitButton.disabled = false;
+                            submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                            submitButton.textContent = 'Start Crawling';
+                            
+                        } else if (taskData.status === 'failed') {
+                            resultContent.textContent = `Error: ${taskData.error}\n\nDetails: ${
+                                taskData.error_details ? JSON.stringify(taskData.error_details, null, 2) : 'No additional details'
+                            }`;
+                            
+                            // Reset button state with warning
+                            submitButton.disabled = false;
+                            submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                            submitButton.textContent = 'Retry Crawling';
+                            submitButton.classList.add('bg-yellow-500');
+                            
+                        } else {
+                            // Update progress message
+                            const progress = Math.round((pollAttempts / maxAttempts) * 100);
+                            resultContent.textContent = `Status: ${taskData.status}\nProgress: ${progress}%\nAttempt: ${pollAttempts + 1}/${maxAttempts}`;
+                            pollAttempts++;
+                            setTimeout(() => pollTask(taskId), 1000);
+                        }
+                    } catch (error) {
+                        resultContent.textContent = `Error checking task status: ${error.message}`;
+                    }
+                };
+
+                pollTask(data.task_id);
+            } catch (error) {
+                resultContent.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
